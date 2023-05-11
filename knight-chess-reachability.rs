@@ -6,9 +6,9 @@
 //in a matrix, 
 
 //For visualization of naming conventions
-const chessMatrixConversions : [(&'static str, i32); 8] = [("a", 0), ("b", 1), ("c", 2), ("d", 3), ("e", 4), ("f", 5), ("g", 6), ("h", 7)];
+const CHESS_TO_MATRIX_CONVERSION : [(&'static str, i32); 8] = [("a", 0), ("b", 1), ("c", 2), ("d", 3), ("e", 4), ("f", 5), ("g", 6), ("h", 7)];
 
-const knightMoves: [(i32, i32); 8] = [(1, 2), (-1, 2), (2, 1), (-2, 1), (2, -1), (-2, -1), (1, -2), (-1, -2)];
+const KNIGHT_MOVES: [(i32, i32); 8] = [(1, 2), (-1, 2), (2, 1), (-2, 1), (2, -1), (-2, -1), (1, -2), (-1, -2)];
 
 fn isValidMove(position : (i32, i32), knightMove : (i32, i32)) -> bool {
     if (position.0 + knightMove.0 > 7) || (position.0 + knightMove.0 < 0) || (position.1 + knightMove.1 > 7) || (position.1 + knightMove.1 < 0){
@@ -19,7 +19,7 @@ fn isValidMove(position : (i32, i32), knightMove : (i32, i32)) -> bool {
 }
 
 fn convertToMatrix(chessNotation : (&'static str, i32)) -> (i32, i32) {
-    for conversion in chessMatrixConversions {
+    for conversion in CHESS_TO_MATRIX_CONVERSION {
         if conversion.0 == chessNotation.0 {
             return ((chessNotation.1 - 8).abs(), conversion.1);
         }
@@ -28,12 +28,29 @@ fn convertToMatrix(chessNotation : (&'static str, i32)) -> (i32, i32) {
 }
 
 fn convertToChess(matrixNotation : (i32, i32)) -> (&'static str, i32) {
-    for conversion in chessMatrixConversions {
+    for conversion in CHESS_TO_MATRIX_CONVERSION {
         if conversion.1 == matrixNotation.1 {
             return (conversion.0, 8 - matrixNotation.0);
         }
     }
     return ("z", -1);
+}
+
+fn printBoard(path: Vec<(i32, i32)>) {
+    println!("    a   b   c   d   e   f   g   h");
+    println!("  - - - - - - - - - - - - - - - - -");
+    for i in 0..8 {
+        print!("{} | ", 8 -i);
+        for j in 0..8 {
+            if path.contains(&(i,j)) {
+                print!("K | ");
+            } else {
+                print!("  | ");
+            }
+        }
+        print!("\n");
+        println!("  - - - - - - - - - - - - - - - - -");
+    }
 }
 
 #[derive(Clone)]
@@ -45,7 +62,7 @@ struct Square {
 
 impl Square {
     fn new() -> Square {
-        let mut newSquare = Square {
+        let newSquare = Square {
             label: (-1, -1),
             path: Vec::new(),
             origin: (-1, -1)
@@ -61,7 +78,7 @@ struct ChessBoard {
 impl ChessBoard {
 
     fn new() -> ChessBoard {
-        let mut squaresMatrix : Vec<Vec<Square<>>> = Vec::new();
+        let squaresMatrix : Vec<Vec<Square<>>> = Vec::new();
         let mut newBoard = ChessBoard {
             squares: squaresMatrix,
         };
@@ -69,7 +86,7 @@ impl ChessBoard {
         for row in 0..8 {
             let mut thisRow : Vec<Square<>> = Vec::new();
             for  col in 0..8 {
-                let mut tempSquare = Square {
+                let tempSquare = Square {
                     label: (row, col),
                     path: Vec::new(),
                     origin: (-1, -1)
@@ -85,9 +102,7 @@ impl ChessBoard {
         let mut minPath : Vec<(i32, i32)> = Vec::new();
         let board = &mut self.squares;
         let startMatrix = convertToMatrix(start);
-        println!("Starting at: ({}, {})", startMatrix.0, startMatrix.1);
         let endMatrix = convertToMatrix(end);
-        println!("Ending at: ({}, {})", endMatrix.0, endMatrix.1);
 
         let startSquare = Square {
             label: startMatrix,
@@ -120,9 +135,8 @@ impl ChessBoard {
     
         loop {
             for i in 0..forwardChecking.len() {
-                let mut currentSquare = board[forwardChecking[i].0 as usize][forwardChecking[i].1 as usize].clone();
-                println!("Looking at square forward: ({}, {})", currentSquare.label.0, currentSquare.label.1);
-                for knightMove in knightMoves {
+                let currentSquare = board[forwardChecking[i].0 as usize][forwardChecking[i].1 as usize].clone();
+                for knightMove in KNIGHT_MOVES {
                     if !isValidMove(currentSquare.label, knightMove) {
                         continue;
                     }
@@ -135,9 +149,6 @@ impl ChessBoard {
                     } else if newSquare.origin == endSquare.origin {
                             forwardEnding = currentSquare.clone();
                             backwardEnding = newSquare.clone();
-                            if forwardEnding.path.len() > 1 {
-                                forwardEnding.path.push(currentSquare.label);
-                            }
                             foundPath = true;
                             break;
                     } 
@@ -146,10 +157,7 @@ impl ChessBoard {
                         newSquare.path = currentSquare.path.clone();
                         newSquare.path.push(newSquare.label);
                         board[movement.0 as usize][movement.1 as usize] = newSquare.clone();
-                    } else if currentSquare.path.len() > newSquare.path.len() {
-                        currentSquare.path = newSquare.path.clone();
-                        board[forwardChecking[i].0 as usize][forwardChecking[i].1 as usize] = currentSquare.clone();
-                    }
+                    } 
                 }
             }
             if foundPath {
@@ -158,8 +166,8 @@ impl ChessBoard {
             forwardChecking = forwardToCheck.clone();
 
             for i in 0..backwardChecking.len() {
-                let mut currentSquare = board[backwardChecking[i].0 as usize][backwardChecking[i].1 as usize].clone();
-                for knightMove in knightMoves {
+                let currentSquare = board[backwardChecking[i].0 as usize][backwardChecking[i].1 as usize].clone();
+                for knightMove in KNIGHT_MOVES {
                     if !isValidMove(currentSquare.label, knightMove) {
                         continue;
                     }
@@ -172,9 +180,6 @@ impl ChessBoard {
                     } else if newSquare.origin == startSquare.origin {
                             backwardEnding = currentSquare.clone();
                             forwardEnding = newSquare.clone();
-                            if backwardEnding.path.len() > 1 {
-                                backwardEnding.path.push(currentSquare.label);
-                            }
                             foundPath = true;
                             break
                     } 
@@ -183,10 +188,7 @@ impl ChessBoard {
                         newSquare.path = currentSquare.path.clone();
                         newSquare.path.push(newSquare.label);
                         board[movement.0 as usize][movement.1 as usize] = newSquare.clone();
-                    } else if currentSquare.path.len() > newSquare.path.len() {
-                        currentSquare.path = newSquare.path.clone();
-                        board[forwardChecking[i].0 as usize][forwardChecking[i].1 as usize] = currentSquare.clone();
-                    }
+                    } 
                 }
             }
             if foundPath {
@@ -205,16 +207,22 @@ impl ChessBoard {
     }
 }
 
-
 fn main() {
     let mut chessBoard = ChessBoard::new();
-    let foundPath = chessBoard.determinePath(("a", 8), ("a", 4));
+    let startingSquare = ("c", 7);
+    let endingSquare = ("h", 2);
+    let foundPath = chessBoard.determinePath(startingSquare, endingSquare);
+    println!("Now determining the minimum path from ({}, {}) to ({}, {})\n", startingSquare.0, startingSquare.1, endingSquare.0, endingSquare.1);
 
     println!("The minimum path has a length of: {}", foundPath.len() - 1);
-    println!("The path is as follows:");
-    for step in foundPath {
-        let chessStep = convertToChess(step);
-        println!("({}, {})", chessStep.0, chessStep.1);
+    println!("The path is as follows:\n");
+    for i in 0..foundPath.len() - 1 {
+        let chessStep1 = convertToChess(foundPath[i]);
+        let chessStep2 = convertToChess(foundPath[i+1]);
+        println!("({}, {})  ->  ({}, {})", chessStep1.0, chessStep1.1, chessStep2.0, chessStep2.1);
     }
+    println!("\nTo see this more visually...\n\n");
+
+    printBoard(foundPath);
 }
 
