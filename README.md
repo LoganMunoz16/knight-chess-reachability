@@ -7,6 +7,8 @@ This program takes a knight piece on a chess board, and finds the minimum path b
 ## Operation
 This repository contains a single source code file. As such, the recommended way of compiling and running this program (at least in an Ubuntu environment) is pasted below.
 
+**NOTE**: If you wish to change the starting and ending squares for this algorithm, please look at the source code and change the values on lines 343 and 344 however you wish.
+
 First, compile the rust source file using rustc:
 ```
 rustc knight-chess-reachability.rs -o test
