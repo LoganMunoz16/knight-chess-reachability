@@ -44,6 +44,8 @@ The algorithm takes ones step forward from the starting square, checking all pos
 
 Once we have obtained this path, we then print it out for the user, both in a view that shows the user what individual moves to make, and then in a full-board view that allows a user to see all the places on the board that the knight went.
 
+One important thing to note here is that given this set up, we will *always* have a minimum path between our two squares. Due to there being no other pieces on the board, the knight can access any square on that board, albeit with potentially a large amount of moves. In the next implementation of this algorithm (discussed below), we *will* encounter times that the knight cannot find a path due to pieces blocking pivotal squares.
+
 ## Future Work
 Part of the future work for this algorithm will be to add in handling for a chess board that has certain squares blocked off, for example where your own piece may be. This is a required feature, and thus will be implemented into this repository soon.
 
