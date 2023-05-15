@@ -1,5 +1,7 @@
 # Rust - Knight Piece Chess Reachability
 
+**NOTE**: This implementation was updated on 5/14/2023 to allow the user to input a list of chess squares to block.
+
 This program takes a knight piece on a chess board, and finds the minimum path between two designated squares, using only valid knight movements. These initial squares must be given in traditional chess notation. A picture of this labeling is included below for clarity when trying out new squares, or when reading the output describing your found path.
 
 ![Chess Labeling](https://github.com/LoganMunoz16/knight-chess-reachability/assets/59589283/59ee6db6-9504-4258-ae34-93f7b5fcc8f2)
@@ -7,7 +9,7 @@ This program takes a knight piece on a chess board, and finds the minimum path b
 ## Operation
 This repository contains a single source code file. As such, the recommended way of compiling and running this program (at least in an Ubuntu environment) is pasted below.
 
-**NOTE**: If you wish to change the starting and ending squares for this algorithm, please look at the source code and change the values on lines 343 and 344 however you wish.
+**NOTE**: If you wish to change the starting and ending squares for this algorithm, please look at the source code and change the values on lines 397 and 398 however you wish. Additionally, if you wish to change what squares are blocked, please update the array on line 402 with your list, and be sure to update the array size on that line as well.
 
 First, compile the rust source file using rustc:
 ```
@@ -28,7 +30,7 @@ There is a new struct called a Square, which is used to make our chess board. Sq
 
 * label: This is a tuple containing a (row, col) pair that tells us where the square is in our matrix
 * path: This is a vector containing tuples, which tells us the path the knight has taken to get to this square
-* origin: This is another tuple telling us where the knight started for easy comparison access to check if we have found our minimum path
+* origin: This is another tuple telling us where the knight started for easy comparison access to check if we have found our minimum path. UPDATE: A square with an origin of (-2, -2) denotes a Square that is blocked.
 
 ### Chess Board
 The chess board has a fairly simple implementation, with only one attribute inside of the struct. The primary use of the ChessBoard struct is that it contains the methods used to both initialize our board, and then find the minimum path. The single attribute is listed below:
@@ -46,8 +48,10 @@ Once we have obtained this path, we then print it out for the user, both in a vi
 
 One important thing to note here is that given this set up, we will *always* have a minimum path between our two squares. Due to there being no other pieces on the board, the knight can access any square on that board, albeit with potentially a large amount of moves. In the next implementation of this algorithm (discussed below), we *will* encounter times that the knight cannot find a path due to pieces blocking pivotal squares.
 
+**UPDATE**: Functionality has now been added to allow a user to block off squares. As such, the algorithm runs the same as before, but skips over those blocked squares when making moves. This means that there will be times that we are unable to find a path between two valid squares, provided all possible paths between them have a blockage.
+
 ## Future Work
-Part of the future work for this algorithm will be to add in handling for a chess board that has certain squares blocked off, for example where your own piece may be. This is a required feature, and thus will be implemented into this repository soon.
+Part of the future work for this algorithm will be to add in handling for a chess board that has certain squares blocked off, for example where your own piece may be. This is a required feature, and thus will be implemented into this repository soon. **UPDATE**: This has been done! 
 
 Other than the required work, I also feel as though I can reduce the complexity of my code a little. There are some repeated sections of code that might be able to be cut out or consilidated, and things like the origin attribute of a Square may not be needed if I change my code up a bit. The algorithm does work well from my testing, but I still think that the code itself could be optimized just a bit. Additionally, I think it would be interesting to add in a feature that allows the user to have a full board of other chess pieces. This way, we would restrict the user from landing on a space with their own piece, but they could land on a square with an opposing piece and steal it. Not only could we find the minimum path, but we could try to find the path that maximizes the number of pieces you can capture along the way.
 
