@@ -1,6 +1,6 @@
 /*
 * Author: Logan Munoz
-* Date: 5/11/2023
+* Date: 5/11/2023 (original), 5/14/2023 (update for blocked squares)
 * CSC 4800
 * Project: Knight chess board reachability
 *
@@ -11,6 +11,10 @@
 *                    the number of possible paths to check, and allows us to just watch for the first time when 
 *                    the backward movement path hits a forward movement path, or vise versa. That first touch is
 *                    our minimum path!
+*
+* UPDATE: This program will now allow functionality for a chess board that contains pieces blocking the knight's movement.
+*         The general algorithm will remain the same, except that we will have instances where the knight will be unable to
+*         complete the desired path.
 *
 * A note on chess notation: Chess boards are labeled with the top left corner being ("a", 8), and the bottom left
 *                           as ("h", 1), and thus this program uses that labeling convention for in/output.
@@ -68,18 +72,15 @@ fn convertToChess(matrixNotation : (i32, i32)) -> (&'static str, i32) {
 }
 
 /* isValidInput
-* Desc: Checks to ensure the desired starting and ending squares are valid squares
+* Desc: Checks to ensure the desired square is a valid one
 * @param: start - a tuple with the desired chess square, in the form of ("letter", number)
 *         end - a tuple with the desired chess square, in the form of ("letter", number)
 * @return: boolean true if valid and false if not
 */
-fn isValidInput(start: (&'static str, i32), end: (&'static str, i32)) -> bool{
-    let startConvert = convertToMatrix(start);
-    let endConvert = convertToMatrix(end);
+fn isValidInput(square: (&'static str, i32)) -> bool{
+    let squareConvert = convertToMatrix(square);
 
-    if (startConvert.0 > 7) || (startConvert.1 > 7) || (startConvert.0 < 0) || (startConvert.1 < 0) {
-        return false;
-    } else if (endConvert.0 > 7) || (endConvert.1 > 7) || (endConvert.0 < 0) || (endConvert.1 < 0) {
+    if (squareConvert.0 > 7) || (squareConvert.1 > 7) || (squareConvert.0 < 0) || (squareConvert.1 < 0) {
         return false;
     } else {
         return true;
@@ -177,15 +178,58 @@ impl ChessBoard {
         return newBoard;
     }
 
+    //UPDATE: New function!
+    /* blockSquares
+    * Desc: Blocks the requested squares on the chess board by setting the origin of them to (-2, -2). This will also
+    *       ensure that all the desired squares are actually valid squares to block
+    * @param: self - a mutable reference to this ChessBoard so we can modify the squares in it
+    *         start - the starting square of our knight
+    *         end - the ending square of our knight
+    *         blocked - a vector of chess board notation squares to block
+    * @return: boolean true if all blocked successfully, and false otherwise
+    */
+    fn blockSquares(&mut self, start: (&'static str, i32), end: (&'static str, i32), blocked : Vec<(&'static str, i32)>) -> bool {
+
+        //Iterate through all desired blocked squares
+        for square in blocked {
+            let matrixConverted = convertToMatrix(square); //Convert to matrix notation
+
+            //If the square is invalid, or is the same as the start or end square, then stop execution here
+            if !isValidInput(square) || square == start || square == end {
+                println!("Desired blocked square ({}, {}) is invalid. Please try again.", square.0, square.1);
+                return false;
+            }
+
+            //Otherwise, makea new Square with a "blocked" origin of (-2, -2)
+            let blockedSquare = Square {
+                label: matrixConverted,
+                path: Vec::new(),
+                origin: (-2, -2)
+            };
+
+            //Update the board with this blocked square
+            let board = &mut self.squares;
+            board[matrixConverted.0 as usize][matrixConverted.1 as usize] = blockedSquare;
+        }
+        return true;
+    }
+
     /* determinePath
     * Desc: Determines the shortest path from the staring square to the ending square. Does so in a Savitch's Theorem
     *       manner, where we move both forward and backward and check to see when we meet in the middle
     * @param: self - a mutable reference to this ChessBoard so we can modify the squares in it
     *         start - the starting square of our knight
     *         end - the ending square of our knight
+    *         blocked - a vector of chess board notation squares to block
     * @return: a vector of tuples representing the path the knight takes
     */
-    fn determinePath(&mut self, start: (&'static str, i32), end: (&'static str, i32)) -> Vec<(i32, i32)> {
+    fn determinePath(&mut self, start: (&'static str, i32), end: (&'static str, i32), blocked : Vec<(&'static str, i32)>) -> Vec<(i32, i32)> {
+        //UPDATE: Adding in the blocked squares conversions.
+        let blockedNum = blocked.len();
+        if !self.blockSquares(start, end, blocked) {
+            return Vec::new();
+        }
+        
         //Begin by initializing the path, getting a reference to our board, and converting our squares into matrix notation
         let mut minPath : Vec<(i32, i32)> = Vec::new();
         let board = &mut self.squares;
@@ -232,8 +276,8 @@ impl ChessBoard {
         let mut squareCount = 2;
     
     
-        //Loop until we have looked at every possible square
-        while squareCount < 64 {
+        //Loop until we have looked at every possible square, except for the ones we know are blocked
+        while squareCount < 64 - blockedNum {
             //Go through the list of squares we are currently checking
             for i in 0..forwardChecking.len() {
                 //Save the current square based on the board
@@ -248,7 +292,12 @@ impl ChessBoard {
                     //Make a new square based on where the knight would move to
                     let movement = (currentSquare.label.0 + knightMove.0, currentSquare.label.1 + knightMove.1);
                     let mut newSquare = board[movement.0 as usize][movement.1 as usize].clone();
-                    forwardToCheck.push(newSquare.label); //Save this new one to check in the next run
+
+                    //UPDATE: An origin of (-2, -2) will denote a blocked space, so skip this move if so
+                    if newSquare.origin == (-2, -2) {
+                        continue;
+                    }
+                    forwardToCheck.push(newSquare.label); //If all good, save this new one to check in the next run
 
                     //If the origin is "null" save over that with the origin on our current path and increment squareCount
                     if newSquare.origin == (-1, -1) {
@@ -293,6 +342,11 @@ impl ChessBoard {
                     }
                     let movement = (currentSquare.label.0 + knightMove.0, currentSquare.label.1 + knightMove.1);
                     let mut newSquare = board[movement.0 as usize][movement.1 as usize].clone();
+
+                    if newSquare.origin == (-2, -2) {
+                        continue;
+                    }
+
                     backwardToCheck.push(newSquare.label);
                     squareCount += 1;
                     if newSquare.origin == (-1, -1) {
@@ -340,17 +394,22 @@ impl ChessBoard {
 fn main() {
     //Create our ChessBoard and save our starting and ending squares
     let mut chessBoard = ChessBoard::new();
-    let startingSquare = ("c", 7);
-    let endingSquare = ("h", 2);
+    let startingSquare = ("a", 8);
+    let endingSquare = ("a", 4);
+
+    //UPDATE: Add in your list of blocked squares here
+    //Also please change the size of this array when doing so... errors will ensue otherwise
+    let blockedSquares: [(&'static str, i32); 3] = [("b", 6), ("c", 3), ("b", 2)];
+    let blockedVec = Vec::from(blockedSquares);
     
     //Ensure that those squares are valid, if not we stop and alert the user
-    if !isValidInput(startingSquare, endingSquare) {
+    if !isValidInput(startingSquare) ||  !isValidInput(endingSquare) {
         println!("Please double check your desired squares, they do not appear to be in a valid format.");
         return;
     }
 
     //Run our algorithm
-    let foundPath = chessBoard.determinePath(startingSquare, endingSquare);
+    let foundPath = chessBoard.determinePath(startingSquare, endingSquare, blockedVec);
 
     //If the path has a length of 0, that means we didn't find any :(
     if foundPath.len() == 0 {
